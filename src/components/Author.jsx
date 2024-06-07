@@ -6,19 +6,15 @@ function Author(){
         Linking.openURL('https://jonatandev.netlify.app/');
       };
     return(
-        <Text onPress={handlePress} style={styles.author}>Desarrollado en ReactNative por JJML</Text>
+        <Text onPress={handlePress} style={styles.author}>Desarrollado por JJML</Text>
     )
 }
 
 const styles=StyleSheet.create({
     author:{
-        position:'absolute',
-        fontSize:16,
+        fontSize:14,
         color:'#bbb',
-        padding:15,
-        textAlign:'center',
-        bottom:3,
-        right:3
+        alignSelf:'center'
     }
 })
 

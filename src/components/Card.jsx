@@ -1,22 +1,22 @@
 import { React} from "react";
-import { StyleSheet, Text, Button, View, } from "react-native";
+import { StyleSheet, Text, Button, View, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import DetailCard from "../views/LendingDetail";
 
-function Card({ id, nombres, fecha, monto }) {
+function Card({ id, nombres, fecha,interes, monto,deletePrestamo }) {
     const navigation = useNavigation()
+
     return (
-        <View style={styles.card}>
+        <TouchableOpacity onPress={() => navigation.navigate('DetailCard', { id: id ,nombres:nombres,interes:interes})} activeOpacity={0.8} style={styles.card}>
             <View >
                 <Text style={styles.titulo}>{nombres}</Text>
                 <Text style={styles.description}>Prestamo : {fecha}</Text>
-                <Text style={styles.description}>Prox pago: {fecha}</Text>
+                <Text style={styles.description}>Interes: {interes} %</Text>
             </View>
-            <View >
+            <View onPress={() => navigation.navigate('DetailCard', { id: id })}>
                 <Text style={[styles.titulo, styles.monto]}>S/.  {monto}</Text>
-                <Button onPress={() => navigation.navigate('DetailCard', { id: id })} color={'#2ECC71'} title="Detalle" />
+                <Button onPress={()=>deletePrestamo(id)} color={'red'} title="Eliminar" />
             </View>
-        </View>
+        </TouchableOpacity >
     )
 }
 
@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
 
     },
     monto: {
-        backgroundColor: '#E74C3C',
+        backgroundColor: '#2ECC71',
         padding: 5,
         borderRadius: 10,
         marginBottom: 5
