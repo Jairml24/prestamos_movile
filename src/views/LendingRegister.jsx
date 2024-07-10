@@ -4,7 +4,7 @@ import Tittle from "../components/Tittle"
 import { insertPrestamos, insertDetallePrestamos } from '../dataBase/db.js'
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { format, addMonths } from 'date-fns';
+import { format, addMonths, addDays } from 'date-fns';
 import RNPickerSelect from "react-native-picker-select";
 
 
@@ -19,6 +19,8 @@ export default function LendingRegister() {
 
   const isFocused = useIsFocused();
   const [tipo, setTipo] = useState(null);
+  const [tipoInteres, setTipoInteres] = useState(null);
+  const [tipoCuotas, setTipoCuotas] = useState(null);
   // campo fecha 
   const [date, setDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
@@ -37,55 +39,95 @@ export default function LendingRegister() {
     setShowPicker(false);
   };
 
-  const changeTipo = (value)=> {
+  const changeTipo = (value) => {
     if (value === '0') {
       cleanFields()
     }
     else {
       setPorcentaje('0')
       setCuotas('0')
+      setTipoInteres('0')
+      setTipoCuotas('0')
     }
     setTipo(value)
   }
+
+  const changeTipoInteres = (value) => {
+    setTipoInteres(value)
+  }
+  const changeTipoCuotas = (value) => {
+    setTipoCuotas(value)
+  }
+
+
   const storePrestamo = () => {
     if (validateFields()) {
-      const registrar = async () => {
-        const fecha = format(date, 'yyyy-MM-dd')
-        let fechasPago = []
-        let mensualidad = 0
-        let tipoPrestamo = tipo === '0' ? true : false
+    const registrar = async () => {
+      const fecha = format(date, 'yyyy-MM-dd')
+      let fechasPago = []
+      let monto_cuota = 0
+      let tipoPrestamo = tipo === '0' ? true : false
 
-        // guardando el prestamos 
-        const idPrestamo = await insertPrestamos(nombre, format(date, 'yyyy-MM-dd'), monto, porcentaje, cuotas, tipoPrestamo);
+      // guardando el prestamos 
+      const idPrestamo = await insertPrestamos(nombre, format(date, 'yyyy-MM-dd'), monto, porcentaje, cuotas, tipoPrestamo);
 
-        //obteniendo dechas de pago y montos
-        if (cuotas > 0) {
-          mensualidad = ((monto / cuotas) + ((monto / cuotas) * (porcentaje / 100)))
-          for (let index = 0; index < cuotas; index++) {
-            if (index == 0) {
-              fechasPago.push(addMonths(date, 1));
-            }
-            else {
-              fechasPago.push(addMonths(fechasPago[index - 1], 1));
-            }
+      //obteniendo dechas de pago y montos
+      if (cuotas > 0) {
+        if(tipoInteres==='0'){
+          monto_cuota = ((monto / cuotas) + ((monto / cuotas) * (porcentaje / 100)))
+        }
+        else{
+          let interes_cuota=monto*(porcentaje / 100)
+          monto_cuota = ((monto / cuotas) + interes_cuota)
+        }
+
+        // sacando los tipos de cuotas si por mes quincena semanal o diario para claular las cuotas y fechas 
+        let suma, numero;
+
+        switch (tipoCuotas) {
+          case '0':
+            suma = addMonths
+            numero = 1
+            break;
+          case '1':
+            suma = addDays
+            numero = 15
+            break;
+          case '2':
+            suma = addDays
+            numero = 7
+            break;
+          case '3':
+            suma = addDays
+            numero = 1
+            break;
+        }
+
+        for (let index = 0; index < cuotas; index++) {
+          if (index == 0) {
+            fechasPago.push(suma(date, numero));
+          }
+          else {
+
+            fechasPago.push(suma(fechasPago[index - 1], numero));
           }
         }
-        else {
-          fechasPago.push(addMonths(date, 1));
-          mensualidad = monto
-        }
-
-        // guardando el detalle del prestamos 
-        for (let j = 0; j < fechasPago.length; j++) {
-          await insertDetallePrestamos(idPrestamo, j + 1, format(fechasPago[j], 'yyyy-MM-dd'), mensualidad, 0);
-        }
-
-
-        // limpiando campos y redirigiendo a prestamso
-        cleanFields()
-        navigation.navigate('LendingList');
       }
-      registrar()
+      else {
+        fechasPago.push(date);
+        monto_cuota = monto
+      }
+
+      // guardando el detalle del prestamos 
+      for (let j = 0; j < fechasPago.length; j++) {
+        await insertDetallePrestamos(idPrestamo, j + 1, format(fechasPago[j], 'yyyy-MM-dd'), monto_cuota, 0);
+      }
+
+      // limpiando campos y redirigiendo a prestamso
+      cleanFields()
+      navigation.navigate('LendingList');
+    }
+    registrar()
     }
     else {
       setErrorMessage('Por favor, complete todos los campos.');
@@ -102,13 +144,15 @@ export default function LendingRegister() {
     setPorcentaje('')
     setCuotas('')
     setNombre('')
-    setMonto('')  
+    setMonto('')
     setDate(new Date())
     setTipo(null)
+    setTipoInteres(null)
+    setTipoCuotas(null)
     setErrorMessage('');
   }
   const validateFields = () => {
-    if (nombre === '' || monto === '' || porcentaje === '' || cuotas === '') {
+    if (nombre === '' || monto === '' || porcentaje === '' || cuotas === '' || tipoInteres==null || tipoCuotas==null) {
       return false
     }
     return true
@@ -118,17 +162,38 @@ export default function LendingRegister() {
       <Tittle tittle='Nuevo prestamo' />
       <View style={styles.container}>
         {errorMessage !== '' && <Text style={{ color: 'red' }}>{errorMessage}</Text>}
-        <RNPickerSelect 
+        <RNPickerSelect
           onValueChange={(value) => changeTipo(value)}
           items={[
             { label: 'Cuotas', value: '0' },
             { label: 'Normal', value: '1' },
           ]}
-          placeholder={{ label: 'Selecciona una opción...', value: null }}
+          placeholder={{ label: 'Tipo prestamo', value: null }}
           style={pickerSelectStyles}
           value={tipo}
         />
-
+        {
+          tipo === '0' && (
+            <><RNPickerSelect
+              onValueChange={(value) => changeTipoInteres(value)}
+              items={[
+                { label: 'Total', value: '0' },
+                { label: 'Por Couta', value: '1' },
+              ]}
+              placeholder={{ label: 'Tipo de interes aplicable', value: null }}
+              style={pickerSelectStyles}
+              value={tipoInteres} /><RNPickerSelect
+                onValueChange={(value) => changeTipoCuotas(value)}
+                items={[
+                  { label: 'Mensual', value: '0' },
+                  { label: 'Quincenal', value: '1' },
+                  { label: 'Semanal', value: '2' },
+                  { label: 'Diario', value: '3' },
+                ]}
+                placeholder={{ label: 'Configuración de cuotas', value: null }}
+                style={pickerSelectStyles}
+                value={tipoCuotas} /></>
+          )}
         <TextInput
           style={styles.input}
           placeholder="Nombre"
@@ -165,7 +230,7 @@ export default function LendingRegister() {
         />
         <TextInput
           style={[styles.input, tipo === '1' ? styles.inputHide : '']}
-          placeholder="Meses de prestamo"
+          placeholder="Numero de cuotas"
           onChangeText={text => setCuotas(text)}
           value={cuotas}
           placeholderTextColor="gray"
@@ -231,7 +296,11 @@ const pickerSelectStyles = StyleSheet.create({
     borderRadius: 8,
     color: 'black',
     paddingRight: 30, // to ensure the text is never behind the icon
-    backgroundColor: '#ddd'
+    backgroundColor: '#ddd',
+    marginBottom: 10,
+  },
+  inputAndroidHidden: {
+    display: 'none', // No se puede usar directamente en React Native
   },
   placeholder: {
     color: 'black',

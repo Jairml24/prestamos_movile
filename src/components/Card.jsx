@@ -4,16 +4,15 @@ import { useNavigation } from "@react-navigation/native";
 
 function Card({ id, nombres, fecha,interes, monto,tipo,estado,deletePrestamo }) {
     const navigation = useNavigation()
-
     return (
         <TouchableOpacity onPress={() => navigation.navigate('DetailCard', { id: id ,nombres:nombres,interes:interes,tipo:tipo,estado:estado})} activeOpacity={0.8} style={[styles.card,tipo?null:{backgroundColor:'#6C3483'}]}>
             <View >
-                <Text style={styles.titulo}>{nombres}</Text>
+                <Text style={[styles.titulo,nombres.length>20?styles.texto:null]}>{nombres}</Text>
                 <Text style={styles.description}>Prestamo : {fecha}</Text>
                {tipo?<Text style={styles.description}>Interes: {interes} %</Text>:null}
             </View>
             <View onPress={() => navigation.navigate('DetailCard', { id: id })}>
-                <Text style={[styles.titulo, styles.monto]}>S/.  {monto}</Text>
+                <Text style={[styles.titulo, styles.monto]}>S/.  {monto.toFixed(2)}</Text>
                 {estado?null:<Button onPress={()=>deletePrestamo(id)} color={'red'} title="Eliminar" />}
             </View>
         </TouchableOpacity >
@@ -44,6 +43,9 @@ const styles = StyleSheet.create({
         padding: 5,
         borderRadius: 10,
         marginBottom: 5
+    },
+    texto:{
+        fontSize:15
     }
 })
 
